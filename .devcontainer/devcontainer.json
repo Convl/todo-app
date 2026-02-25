@@ -1,0 +1,52 @@
+{
+  "name": "Claude Code Sandbox",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "args": {
+      // Pass through your local timezone so git log timestamps look right.
+      "TZ": "${localEnv:TZ:UTC}"
+    }
+  },
+  // NET_ADMIN + NET_RAW are required to manage iptables rules inside the
+  // container. Without them init-firewall.sh cannot run.
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW",
+    "--cap-add=SYSLOG"
+  ],
+  "remoteUser": "devuser",
+  // Bind-mount your project folder into /workspace inside the container.
+  // Change the source to a subfolder if you only want to expose part of your repo.
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=delegated",
+  "workspaceFolder": "/workspace",
+  // Persist Claude Code configuration (API key, settings) across rebuilds.
+  // Without this mount you'd have to re-authenticate every time.
+  "mounts": [
+    "source=cc-config-${devcontainerId},target=/home/devuser/.claude,type=volume",
+    "source=cc-history-${devcontainerId},target=/commandhistory,type=volume"
+  ],
+  "containerEnv": {
+    // Set to "false" to skip the firewall and allow unrestricted network access.
+    "ENABLE_FIREWALL": "false",
+    "UV_LINK_MODE": "copy"
+  },
+  // init-firewall.sh always runs (it fixes /etc/hosts regardless of firewall
+  // setting). sudo -E passes ENABLE_FIREWALL through to the script.
+  "postStartCommand": "sudo -E /usr/local/bin/init-firewall.sh && sudo /usr/local/bin/fix-workspace.sh && /usr/local/bin/setup-credentials.sh",
+  "postCreateCommand": "([ -f /workspace/pyproject.toml ] && uv sync || true) && ([ -f /workspace/package.json ] && npm install || true)",
+  "waitFor": "postStartCommand",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code"
+      ]
+    }
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/git:latest": {},
+    "ghcr.io/devcontainers/features/github-cli:latest": {},
+    "ghcr.io/devcontainers/features/python:latest": {},
+    "ghcr.io/devcontainers/features/node:latest": {},
+    "ghcr.io/devcontainers/features/docker-in-docker:latest": {}
+  }
+}
