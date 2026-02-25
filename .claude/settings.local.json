@@ -11,7 +11,9 @@
       "Bash(git push:*)",
       "Bash(gh pr:*)",
       "Bash(docker ps:*)",
-      "Bash(docker rm:*)"
+      "Bash(docker rm:*)",
+      "Bash(git remote add experiment https://github.com/Convl/experiment.git 2>&1 && git push experiment main 2>&1)",
+      "Bash(git remote:*)"
     ]
   }
 }

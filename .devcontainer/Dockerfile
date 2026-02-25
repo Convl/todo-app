@@ -35,15 +35,18 @@ RUN useradd -m -s /bin/bash devuser \
 # Persist bash history in the /commandhistory volume (mounted via devcontainer.json).
 # PROMPT_COMMAND flushes each command immediately so history survives crashes.
 RUN echo 'export HISTFILE=/commandhistory/.bash_history' >> /home/devuser/.bashrc \
-    && echo 'export PROMPT_COMMAND="history -a"' >> /home/devuser/.bashrc
+    && echo 'export PROMPT_COMMAND="history -a"' >> /home/devuser/.bashrc \
+    && echo 'parse_git_branch() { local b; b=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) && echo " ($b)"; }' >> /home/devuser/.bashrc \
+    && echo 'export PS1="\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[33m\]\$(parse_git_branch)\[\033[00m\]\$ "' >> /home/devuser/.bashrc
 
 # Install scripts as root so devuser cannot modify them.
 COPY init-firewall.sh /usr/local/bin/init-firewall.sh
 COPY setup-credentials.sh /usr/local/bin/setup-credentials.sh
-RUN printf '#!/bin/sh\nchown -R devuser:devuser /workspace\n' \
+COPY git-askpass.sh /usr/local/bin/git-askpass.sh
+RUN printf '#!/bin/sh\nchown -R devuser:devuser /workspace\ngit config --system --unset-all credential.helper 2>/dev/null || true\n' \
         > /usr/local/bin/fix-workspace.sh \
     && chmod +x /usr/local/bin/init-firewall.sh /usr/local/bin/fix-workspace.sh \
-                /usr/local/bin/setup-credentials.sh
+                /usr/local/bin/setup-credentials.sh /usr/local/bin/git-askpass.sh
 
 
 # Everything below runs as devuser.
